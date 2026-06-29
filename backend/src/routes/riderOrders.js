@@ -6,6 +6,7 @@ const {
   isValidTransition,
   canCancel,
 } = require('../services/orderTransitions');
+const { autoAssign } = require('../services/assignmentEngine');
 
 const router = express.Router();
 
@@ -123,9 +124,19 @@ router.patch('/:id/decline', async (req, res) => {
     order.declineReason = reason || null;
     await order.save();
 
-    // TODO: Trigger auto-reassignment (Phase 2)
+    // Auto-reassign: exclude all riders who already declined this order
+    const previousDeclines = await AssignmentLog.find({
+      orderId: order._id,
+      action: { $in: ['declined', 'timeout'] },
+    }).distinct('riderId');
 
-    res.json({ message: 'Order declined', order });
+    const reassigned = await autoAssign(order._id, previousDeclines);
+
+    res.json({
+      message: 'Order declined',
+      order,
+      reassignedTo: reassigned ? reassigned.name : null,
+    });
   } catch (err) {
     res.status(500).json({ error: 'Failed to decline order' });
   }

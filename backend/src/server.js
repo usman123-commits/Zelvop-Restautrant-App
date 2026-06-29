@@ -9,6 +9,8 @@ const riderStatusRoutes = require('./routes/riderStatus');
 const ownerOrderRoutes = require('./routes/ownerOrders');
 const notificationRoutes = require('./routes/notifications');
 
+const { startScheduledJobs, checkAcceptTimeouts, checkStaleAccepted } = require('./services/scheduledJobs');
+
 const app = express();
 
 app.use(cors());
@@ -25,6 +27,18 @@ app.use('/api/v1/notifications', notificationRoutes);
 app.get('/api/v1/health', (req, res) => {
   res.json({ status: 'ok', timestamp: new Date().toISOString() });
 });
+
+// Dev-only: manually trigger scheduled checks
+if (process.env.NODE_ENV !== 'production') {
+  app.post('/api/v1/dev/run-timeouts', async (req, res) => {
+    const count = await checkAcceptTimeouts();
+    res.json({ processed: count });
+  });
+  app.post('/api/v1/dev/run-stale-check', async (req, res) => {
+    const count = await checkStaleAccepted();
+    res.json({ processed: count });
+  });
+}
 
 // 404 handler
 app.use((req, res) => {
@@ -43,6 +57,7 @@ const start = async () => {
   await connectDB();
   app.listen(PORT, () => {
     console.log(`Zelvop backend running on port ${PORT}`);
+    startScheduledJobs();
   });
 };
 

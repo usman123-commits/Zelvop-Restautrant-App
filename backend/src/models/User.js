@@ -49,6 +49,14 @@ const userSchema = new mongoose.Schema(
       type: Date,
       default: null,
     },
+    assignmentCount: {
+      type: Number,
+      default: 0,
+    },
+    assignmentCountResetDate: {
+      type: Date,
+      default: null,
+    },
     resetPasswordToken: String,
     resetPasswordExpire: Date,
   },

@@ -2,12 +2,14 @@ const express = require('express');
 const Order = require('../models/Order');
 const User = require('../models/User');
 const AssignmentLog = require('../models/AssignmentLog');
+const Notification = require('../models/Notification');
 const { protect, authorize } = require('../middleware/auth');
 const generateOrderId = require('../utils/orderIdGenerator');
 const {
   ACCEPT_TIMEOUT_MS,
   canCancel,
 } = require('../services/orderTransitions');
+const { autoAssign } = require('../services/assignmentEngine');
 
 const router = express.Router();
 
@@ -78,9 +80,16 @@ router.post('/orders', async (req, res) => {
       status: 'pending_assignment',
     });
 
-    // TODO: Trigger auto-assignment (Phase 2)
+    const assignedRider = await autoAssign(order._id);
 
-    res.status(201).json({ order });
+    const freshOrder = await Order.findById(order._id)
+      .populate('assignedRiderId', 'name contactNumber')
+      .lean();
+
+    res.status(201).json({
+      order: freshOrder,
+      autoAssigned: assignedRider ? assignedRider.name : null,
+    });
   } catch (err) {
     if (err.name === 'ValidationError') {
       const messages = Object.values(err.errors).map((e) => e.message);
@@ -195,7 +204,13 @@ router.patch('/orders/:id/assign', async (req, res) => {
       performedBy: req.user._id,
     });
 
-    // TODO: Send push notification to rider (Phase 4)
+    await Notification.create({
+      userId: riderId,
+      type: 'new_order',
+      title: 'New Order Assigned',
+      body: `Order ${order.orderId} has been assigned to you. Accept within 3 minutes.`,
+      orderId: order._id,
+    });
 
     const populated = await Order.findById(order._id)
       .populate('assignedRiderId', 'name contactNumber')
@@ -239,7 +254,15 @@ router.patch('/orders/:id/cancel', async (req, res) => {
     order.cancelReason = reason || null;
     await order.save();
 
-    // TODO: Notify rider if was assigned (Phase 4)
+    if (order.assignedRiderId) {
+      await Notification.create({
+        userId: order.assignedRiderId,
+        type: 'order_cancelled',
+        title: 'Order Cancelled',
+        body: `Order ${order.orderId} has been cancelled by the owner.`,
+        orderId: order._id,
+      });
+    }
 
     res.json({ order });
   } catch (err) {
