@@ -1,0 +1,10 @@
+node_modules/
+dist/
+.expo/
+*.log
+.env
+*.token.json
+
+# OS
+.DS_Store
+Thumbs.db
