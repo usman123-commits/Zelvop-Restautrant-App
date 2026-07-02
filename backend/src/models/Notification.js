@@ -15,6 +15,8 @@ const notificationSchema = new mongoose.Schema(
         'order_reassigned',
         'stale_warning',
         'timeout_decline',
+        'delivery_completed',
+        'online_status',
       ],
       required: true,
     },

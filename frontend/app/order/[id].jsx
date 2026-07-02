@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState } from 'react';
 import {
   View,
   Text,
@@ -9,7 +9,6 @@ import {
   ActivityIndicator,
   Linking,
   TextInput,
-  Switch,
 } from 'react-native';
 import { useLocalSearchParams, useRouter, Stack } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -18,25 +17,95 @@ import {
   ArrowLeft,
   MapPin,
   Phone,
-  User,
-  Package,
-  Clock,
-  Banknote,
-  CreditCard,
-  MessageSquare,
+  Navigation,
   CheckCircle,
   XCircle,
   Truck,
   ThumbsUp,
+  FileText,
 } from 'lucide-react-native';
 import {
   fetchOrderDetail,
   acceptOrderThunk,
   declineOrderThunk,
   pickupOrderThunk,
-  deliverOrderThunk,
 } from '../../src/store/ordersSlice';
 import { Colors, StatusColors } from '../../src/constants/colors';
+
+const TIMELINE_STEPS = [
+  { key: 'received', label: 'Order Received' },
+  { key: 'preparing', label: 'Preparing' },
+  { key: 'picked_up', label: 'Picked Up' },
+  { key: 'delivered', label: 'Delivered' },
+];
+
+function getTimelineState(status) {
+  const map = {
+    pending_assignment: 0,
+    assigned: 0,
+    accepted: 1,
+    picked_up: 2,
+    delivered: 4,
+    cancelled: -1,
+  };
+  return map[status] ?? 0;
+}
+
+function TimelineStep({ label, stepIndex, currentStep, isLast }) {
+  const completed = stepIndex < currentStep;
+  const active = stepIndex === currentStep;
+  const pending = stepIndex > currentStep;
+
+  return (
+    <View style={tlStyles.row}>
+      <View style={tlStyles.dotCol}>
+        <View
+          style={[
+            tlStyles.dot,
+            completed && tlStyles.dotDone,
+            active && tlStyles.dotActive,
+            pending && tlStyles.dotPending,
+          ]}
+        >
+          {completed && (
+            <Text style={tlStyles.checkmark}>&#10003;</Text>
+          )}
+          {active && <View style={tlStyles.innerDot} />}
+        </View>
+        {!isLast && (
+          <View
+            style={[
+              tlStyles.line,
+              completed && tlStyles.lineDone,
+            ]}
+          />
+        )}
+      </View>
+      <View style={tlStyles.textCol}>
+        <Text
+          style={[
+            tlStyles.stepLabel,
+            pending && tlStyles.stepPending,
+          ]}
+        >
+          {label}
+        </Text>
+        <Text
+          style={[
+            tlStyles.stepSub,
+            active && tlStyles.stepSubActive,
+          ]}
+        >
+          {completed
+            ? 'Completed'
+            : active
+              ? 'In progress...'
+              : 'Pending'}
+        </Text>
+      </View>
+    </View>
+  );
+}
 
 export default function OrderDetailScreen() {
   const { id } = useLocalSearchParams();
@@ -49,16 +118,13 @@ export default function OrderDetailScreen() {
 
   const [declineReason, setDeclineReason] = useState('');
   const [showDeclineInput, setShowDeclineInput] = useState(false);
-  const [cashCollected, setCashCollected] = useState(false);
 
   useEffect(() => {
     dispatch(fetchOrderDetail(id));
   }, [id, dispatch]);
 
   useEffect(() => {
-    if (error) {
-      Alert.alert('Error', error);
-    }
+    if (error) Alert.alert('Error', error);
   }, [error]);
 
   const handleAccept = () => {
@@ -77,9 +143,11 @@ export default function OrderDetailScreen() {
       Alert.alert('Reason Required', 'Please provide a reason for declining.');
       return;
     }
-    dispatch(declineOrderThunk({ id, reason: declineReason.trim() })).then((result) => {
-      if (!result.error) router.back();
-    });
+    dispatch(declineOrderThunk({ id, reason: declineReason.trim() })).then(
+      (result) => {
+        if (!result.error) router.back();
+      }
+    );
   };
 
   const handlePickup = () => {
@@ -90,29 +158,22 @@ export default function OrderDetailScreen() {
   };
 
   const handleDeliver = () => {
-    if (order.paymentMethod === 'cod' && !cashCollected) {
-      Alert.alert('Cash Required', 'Please confirm you have collected the cash payment.');
-      return;
-    }
-    Alert.alert('Mark as Delivered', 'Confirm delivery to the customer?', [
-      { text: 'Cancel', style: 'cancel' },
-      {
-        text: 'Confirm',
-        onPress: () =>
-          dispatch(
-            deliverOrderThunk({
-              id,
-              cashCollected: order.paymentMethod === 'cod' ? true : undefined,
-            })
-          ),
+    router.push({
+      pathname: '/order/confirm-delivery',
+      params: {
+        id: order._id,
+        orderId: order.orderId,
+        customerName: order.customerName,
+        totalAmount: String(order.totalAmount),
+        paymentMethod: order.paymentMethod,
       },
-    ]);
+    });
   };
 
   const openMaps = () => {
-    if (!order?.customerAddress) return;
+    if (!order?.deliveryAddress) return;
     const url = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(
-      order.customerAddress
+      order.deliveryAddress
     )}`;
     Linking.openURL(url);
   };
@@ -120,6 +181,12 @@ export default function OrderDetailScreen() {
   const callCustomer = () => {
     if (!order?.customerPhone) return;
     Linking.openURL(`tel:${order.customerPhone}`);
+  };
+
+  const openWhatsApp = () => {
+    if (!order?.customerPhone) return;
+    const phone = order.customerPhone.replace(/\D/g, '');
+    Linking.openURL(`https://wa.me/${phone}`);
   };
 
   if (loading || !order) {
@@ -132,97 +199,108 @@ export default function OrderDetailScreen() {
 
   const status = StatusColors[order.status] || StatusColors.pending_assignment;
   const isCod = order.paymentMethod === 'cod';
+  const timelineStep = getTimelineState(order.status);
 
   return (
     <>
       <Stack.Screen options={{ headerShown: false }} />
       <View style={[styles.container, { paddingTop: insets.top }]}>
-        {/* Top Bar */}
+        {/* Header */}
         <View style={styles.topBar}>
-          <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
-            <ArrowLeft size={22} color={Colors.gray900} />
+          <TouchableOpacity onPress={() => router.back()} style={styles.backBtn}>
+            <ArrowLeft size={20} color={Colors.gray900} />
           </TouchableOpacity>
-          <Text style={styles.topTitle}>{order.orderId}</Text>
+          <Text style={styles.topTitle}>#{order.orderId}</Text>
           <View style={[styles.statusBadge, { backgroundColor: status.bg }]}>
-            <Text style={[styles.statusText, { color: status.text }]}>{status.label}</Text>
+            <Text style={[styles.statusText, { color: status.text }]}>
+              {status.label}
+            </Text>
           </View>
         </View>
 
         <ScrollView style={styles.scroll} contentContainerStyle={styles.scrollContent}>
-          {/* Customer Info */}
+          {/* Status Timeline */}
+          {order.status !== 'cancelled' && (
+            <View style={styles.card}>
+              <Text style={styles.cardTitle}>Status Timeline</Text>
+              {TIMELINE_STEPS.map((step, idx) => (
+                <TimelineStep
+                  key={step.key}
+                  label={step.label}
+                  stepIndex={idx}
+                  currentStep={timelineStep}
+                  isLast={idx === TIMELINE_STEPS.length - 1}
+                />
+              ))}
+            </View>
+          )}
+
+          {/* Customer */}
           <View style={styles.card}>
             <Text style={styles.cardTitle}>Customer</Text>
-            <View style={styles.infoRow}>
-              <User size={16} color={Colors.gray500} />
-              <Text style={styles.infoText}>{order.customerName}</Text>
+            <Text style={styles.customerName}>{order.customerName}</Text>
+            <Text style={styles.customerPhone}>{order.customerPhone}</Text>
+
+            <View style={styles.contactRow}>
+              <TouchableOpacity style={styles.contactBtn} onPress={callCustomer}>
+                <Phone size={16} color={Colors.primary} />
+                <Text style={styles.contactBtnText}>Call</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.contactBtn, styles.whatsappBtn]}
+                onPress={openWhatsApp}
+              >
+                <Text style={styles.whatsappBtnText}>WhatsApp</Text>
+              </TouchableOpacity>
             </View>
-            <TouchableOpacity style={styles.infoRow} onPress={callCustomer}>
-              <Phone size={16} color={Colors.primary} />
-              <Text style={[styles.infoText, styles.linkText]}>{order.customerPhone}</Text>
+
+            <View style={styles.addressRow}>
+              <MapPin size={16} color={Colors.gray500} style={{ marginTop: 2 }} />
+              <Text style={styles.addressText}>{order.deliveryAddress}</Text>
+            </View>
+
+            <TouchableOpacity style={styles.mapsBtn} onPress={openMaps}>
+              <Navigation size={16} color={Colors.primary} />
+              <Text style={styles.mapsBtnText}>Open in Maps</Text>
             </TouchableOpacity>
-            <TouchableOpacity style={styles.infoRow} onPress={openMaps}>
-              <MapPin size={16} color={Colors.primary} />
-              <Text style={[styles.infoText, styles.linkText]}>{order.customerAddress}</Text>
-            </TouchableOpacity>
+
             {order.deliveryNotes && (
-              <View style={styles.infoRow}>
-                <MessageSquare size={16} color={Colors.gray500} />
-                <Text style={styles.infoText}>{order.deliveryNotes}</Text>
+              <View style={styles.notesBox}>
+                <Text style={styles.notesText}>{order.deliveryNotes}</Text>
               </View>
             )}
           </View>
 
-          {/* Items */}
+          {/* Order Items */}
           <View style={styles.card}>
-            <Text style={styles.cardTitle}>Items</Text>
+            <Text style={styles.cardTitle}>Order Items</Text>
             {order.items?.map((item, idx) => (
               <View key={idx} style={styles.itemRow}>
-                <Text style={styles.itemQty}>{item.quantity}x</Text>
-                <Text style={styles.itemName}>{item.name}</Text>
-                <Text style={styles.itemPrice}>Rs. {item.price * item.quantity}</Text>
+                <Text style={styles.itemName}>
+                  {item.quantity}x {item.name}
+                </Text>
+                <Text style={styles.itemPrice}>
+                  Rs. {(item.price * item.quantity).toLocaleString()}
+                </Text>
               </View>
             ))}
             <View style={styles.totalRow}>
               <Text style={styles.totalLabel}>Total</Text>
-              <Text style={styles.totalValue}>Rs. {order.totalAmount}</Text>
+              <Text style={styles.totalValue}>
+                Rs. {order.totalAmount?.toLocaleString()}
+              </Text>
+            </View>
+            <View style={styles.paymentBadge}>
+              <Text
+                style={[
+                  styles.paymentBadgeText,
+                  isCod ? styles.codBadge : styles.prepaidBadge,
+                ]}
+              >
+                {isCod ? 'Cash on Delivery' : 'Prepaid'}
+              </Text>
             </View>
           </View>
-
-          {/* Payment */}
-          <View style={styles.card}>
-            <View style={styles.paymentRow}>
-              {isCod ? (
-                <Banknote size={20} color={Colors.orange} />
-              ) : (
-                <CreditCard size={20} color={Colors.green} />
-              )}
-              <View>
-                <Text style={styles.paymentMethod}>
-                  {isCod ? 'Cash on Delivery' : 'Prepaid'}
-                </Text>
-                {isCod && order.status === 'picked_up' && (
-                  <Text style={styles.paymentNote}>
-                    Collect Rs. {order.totalAmount} from customer
-                  </Text>
-                )}
-              </View>
-            </View>
-          </View>
-
-          {/* COD Cash Toggle -- only when delivering */}
-          {isCod && order.status === 'picked_up' && (
-            <View style={styles.card}>
-              <View style={styles.cashRow}>
-                <Text style={styles.cashLabel}>Cash Collected?</Text>
-                <Switch
-                  value={cashCollected}
-                  onValueChange={setCashCollected}
-                  trackColor={{ false: Colors.gray200, true: Colors.greenLight }}
-                  thumbColor={cashCollected ? Colors.green : Colors.gray400}
-                />
-              </View>
-            </View>
-          )}
 
           {/* Decline Reason Input */}
           {showDeclineInput && (
@@ -236,6 +314,7 @@ export default function OrderDetailScreen() {
                 onChangeText={setDeclineReason}
                 multiline
                 numberOfLines={3}
+                textAlignVertical="top"
               />
             </View>
           )}
@@ -293,23 +372,12 @@ export default function OrderDetailScreen() {
 
           {order.status === 'picked_up' && (
             <TouchableOpacity
-              style={[
-                styles.actionButton,
-                styles.deliverButton,
-                styles.fullWidth,
-                isCod && !cashCollected && styles.buttonDisabled,
-              ]}
+              style={[styles.actionButton, styles.deliverButton, styles.fullWidth]}
               onPress={handleDeliver}
-              disabled={actionLoading || (isCod && !cashCollected)}
+              disabled={actionLoading}
             >
-              {actionLoading ? (
-                <ActivityIndicator color={Colors.white} />
-              ) : (
-                <>
-                  <ThumbsUp size={18} color={Colors.white} />
-                  <Text style={styles.acceptText}>Mark Delivered</Text>
-                </>
-              )}
+              <ThumbsUp size={18} color={Colors.white} />
+              <Text style={styles.acceptText}>Mark Delivered</Text>
             </TouchableOpacity>
           )}
         </View>
@@ -317,6 +385,73 @@ export default function OrderDetailScreen() {
     </>
   );
 }
+
+const tlStyles = StyleSheet.create({
+  row: {
+    flexDirection: 'row',
+    gap: 14,
+  },
+  dotCol: {
+    alignItems: 'center',
+  },
+  dot: {
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  dotDone: {
+    backgroundColor: '#10B981',
+  },
+  dotActive: {
+    backgroundColor: Colors.primary,
+    borderWidth: 3,
+    borderColor: '#BFDBFE',
+  },
+  dotPending: {
+    backgroundColor: Colors.gray200,
+  },
+  innerDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: Colors.white,
+  },
+  checkmark: {
+    color: Colors.white,
+    fontSize: 14,
+    fontWeight: '700',
+  },
+  line: {
+    width: 2,
+    height: 28,
+    backgroundColor: Colors.gray200,
+    marginVertical: 2,
+  },
+  lineDone: {
+    backgroundColor: '#10B981',
+  },
+  textCol: {
+    paddingBottom: 12,
+  },
+  stepLabel: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: Colors.gray900,
+  },
+  stepPending: {
+    color: Colors.gray400,
+  },
+  stepSub: {
+    fontSize: 12,
+    color: Colors.gray400,
+  },
+  stepSubActive: {
+    color: Colors.primary,
+    fontWeight: '500',
+  },
+});
 
 const styles = StyleSheet.create({
   container: {
@@ -332,14 +467,17 @@ const styles = StyleSheet.create({
   topBar: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: 16,
-    paddingVertical: 12,
+    paddingHorizontal: 20,
+    paddingVertical: 16,
     backgroundColor: Colors.white,
-    borderBottomWidth: 1,
-    borderBottomColor: Colors.gray100,
   },
-  backButton: {
-    padding: 4,
+  backBtn: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: Colors.gray100,
+    alignItems: 'center',
+    justifyContent: 'center',
     marginRight: 12,
   },
   topTitle: {
@@ -349,12 +487,12 @@ const styles = StyleSheet.create({
     color: Colors.gray900,
   },
   statusBadge: {
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    borderRadius: 8,
+    paddingHorizontal: 14,
+    paddingVertical: 5,
+    borderRadius: 20,
   },
   statusText: {
-    fontSize: 12,
+    fontSize: 13,
     fontWeight: '600',
   },
   scroll: {
@@ -366,65 +504,118 @@ const styles = StyleSheet.create({
   card: {
     backgroundColor: Colors.white,
     borderRadius: 14,
-    padding: 16,
+    padding: 20,
     marginBottom: 14,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.04,
-    shadowRadius: 4,
-    elevation: 1,
+    borderWidth: 1,
+    borderColor: Colors.gray100,
   },
   cardTitle: {
     fontSize: 14,
-    fontWeight: '600',
-    color: Colors.gray800,
-    marginBottom: 10,
+    fontWeight: '700',
+    color: Colors.gray900,
+    marginBottom: 16,
   },
-  infoRow: {
+  customerName: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: Colors.gray900,
+    marginBottom: 4,
+  },
+  customerPhone: {
+    fontSize: 13,
+    color: Colors.gray500,
+    marginBottom: 12,
+  },
+  contactRow: {
+    flexDirection: 'row',
+    gap: 10,
+    marginBottom: 14,
+  },
+  contactBtn: {
+    flex: 1,
+    height: 42,
+    borderRadius: 10,
+    borderWidth: 1.5,
+    borderColor: Colors.primary,
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 10,
-    marginBottom: 8,
+    justifyContent: 'center',
+    gap: 8,
   },
-  infoText: {
-    fontSize: 14,
-    color: Colors.gray700,
-    flex: 1,
-  },
-  linkText: {
+  contactBtnText: {
+    fontSize: 13,
+    fontWeight: '600',
     color: Colors.primary,
-    textDecorationLine: 'underline',
+  },
+  whatsappBtn: {
+    borderColor: '#25D366',
+  },
+  whatsappBtnText: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: '#25D366',
+  },
+  addressRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 8,
+    marginBottom: 12,
+  },
+  addressText: {
+    flex: 1,
+    fontSize: 13,
+    color: Colors.gray900,
+    lineHeight: 20,
+  },
+  mapsBtn: {
+    height: 40,
+    borderRadius: 10,
+    borderWidth: 1.5,
+    borderColor: Colors.primary,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+  },
+  mapsBtnText: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: Colors.primary,
+  },
+  notesBox: {
+    marginTop: 12,
+    backgroundColor: Colors.gray50,
+    padding: 12,
+    borderRadius: 8,
+  },
+  notesText: {
+    fontSize: 13,
+    color: Colors.gray500,
+    fontStyle: 'italic',
   },
   itemRow: {
     flexDirection: 'row',
-    alignItems: 'center',
-    paddingVertical: 6,
+    justifyContent: 'space-between',
+    paddingVertical: 8,
     borderBottomWidth: 1,
-    borderBottomColor: Colors.gray50,
-  },
-  itemQty: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: Colors.primary,
-    width: 30,
+    borderBottomColor: Colors.gray100,
   },
   itemName: {
-    flex: 1,
     fontSize: 14,
-    color: Colors.gray700,
+    color: Colors.gray900,
   },
   itemPrice: {
     fontSize: 14,
-    fontWeight: '500',
-    color: Colors.gray800,
+    fontWeight: '600',
+    color: Colors.gray900,
   },
   totalRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    marginTop: 10,
-    paddingTop: 10,
-    borderTopWidth: 1,
-    borderTopColor: Colors.gray200,
+    paddingTop: 14,
+    borderTopWidth: 2,
+    borderTopColor: Colors.gray100,
+    marginTop: 8,
   },
   totalLabel: {
     fontSize: 15,
@@ -436,30 +627,25 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     color: Colors.gray900,
   },
-  paymentRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
+  paymentBadge: {
+    marginTop: 8,
   },
-  paymentMethod: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: Colors.gray800,
-  },
-  paymentNote: {
+  paymentBadgeText: {
     fontSize: 12,
-    color: Colors.orange,
-    marginTop: 2,
-  },
-  cashRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-  },
-  cashLabel: {
-    fontSize: 14,
     fontWeight: '600',
-    color: Colors.gray800,
+    paddingHorizontal: 12,
+    paddingVertical: 4,
+    borderRadius: 8,
+    overflow: 'hidden',
+    alignSelf: 'flex-start',
+  },
+  codBadge: {
+    backgroundColor: '#FEF3C7',
+    color: '#92400E',
+  },
+  prepaidBadge: {
+    backgroundColor: '#D1FAE5',
+    color: '#065F46',
   },
   reasonInput: {
     borderWidth: 1,
@@ -468,7 +654,6 @@ const styles = StyleSheet.create({
     padding: 12,
     fontSize: 14,
     color: Colors.gray800,
-    textAlignVertical: 'top',
     minHeight: 60,
   },
   actionBar: {
@@ -477,10 +662,10 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     backgroundColor: Colors.white,
-    paddingTop: 12,
+    paddingTop: 16,
     paddingHorizontal: 20,
     borderTopWidth: 1,
-    borderTopColor: Colors.gray100,
+    borderTopColor: Colors.gray200,
   },
   actionRow: {
     flexDirection: 'row',
@@ -492,7 +677,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     gap: 8,
-    paddingVertical: 14,
+    height: 52,
     borderRadius: 12,
   },
   fullWidth: {
@@ -510,14 +695,11 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.orange,
   },
   deliverButton: {
-    backgroundColor: Colors.green,
-  },
-  buttonDisabled: {
-    opacity: 0.5,
+    backgroundColor: '#10B981',
   },
   acceptText: {
-    fontSize: 15,
-    fontWeight: '600',
+    fontSize: 16,
+    fontWeight: '700',
     color: Colors.white,
   },
   declineText: {

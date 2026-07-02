@@ -1,6 +1,7 @@
 const express = require('express');
 const Order = require('../models/Order');
 const User = require('../models/User');
+const Notification = require('../models/Notification');
 const { protect, authorize } = require('../middleware/auth');
 
 const router = express.Router();
@@ -24,6 +25,15 @@ router.patch('/me/status', async (req, res) => {
     const user = await User.findByIdAndUpdate(req.user._id, update, {
       new: true,
     });
+
+    if (isOnline) {
+      await Notification.create({
+        userId: req.user._id,
+        type: 'online_status',
+        title: "You're now online",
+        body: 'You will receive new order assignments',
+      });
+    }
 
     res.json({
       isOnline: user.isOnline,

@@ -1,6 +1,8 @@
 const express = require('express');
 const Order = require('../models/Order');
+const User = require('../models/User');
 const AssignmentLog = require('../models/AssignmentLog');
+const Notification = require('../models/Notification');
 const { protect, authorize } = require('../middleware/auth');
 const {
   isValidTransition,
@@ -170,6 +172,14 @@ router.patch('/:id/pickup', async (req, res) => {
     order.pickedUpAt = new Date();
     await order.save();
 
+    await Notification.create({
+      userId: req.user._id,
+      type: 'new_order',
+      title: 'Order picked up',
+      body: `Order ${order.orderId} -- on the way to customer`,
+      orderId: order._id,
+    });
+
     res.json({ order });
   } catch (err) {
     res.status(500).json({ error: 'Failed to mark pickup' });
@@ -215,6 +225,29 @@ router.patch('/:id/deliver', async (req, res) => {
     order.riderDeliveryNotes = riderDeliveryNotes || null;
     order.cashCollected = order.paymentMethod === 'cod' ? true : null;
     await order.save();
+
+    // Notify rider
+    await Notification.create({
+      userId: req.user._id,
+      type: 'delivery_completed',
+      title: 'Delivery completed',
+      body: `Order ${order.orderId} delivered successfully`,
+      orderId: order._id,
+    });
+
+    // Notify all owners
+    const owners = await User.find({ role: 'owner' }).select('_id').lean();
+    if (owners.length > 0) {
+      await Notification.insertMany(
+        owners.map((o) => ({
+          userId: o._id,
+          type: 'delivery_completed',
+          title: 'Delivery completed',
+          body: `Order ${order.orderId} delivered by ${req.user.name}`,
+          orderId: order._id,
+        }))
+      );
+    }
 
     res.json({ order });
   } catch (err) {

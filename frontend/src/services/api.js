@@ -101,3 +101,35 @@ export const getNotifications = (limit = 50, offset = 0) =>
 
 export const markNotificationRead = (id) =>
   request(`/notifications/${id}/read`, { method: 'PATCH' });
+
+export const markAllNotificationsRead = () =>
+  request('/notifications/read-all', { method: 'PATCH' });
+
+// Upload
+export const uploadProofPhoto = async (imageUri) => {
+  const formData = new FormData();
+  const filename = imageUri.split('/').pop();
+  const ext = filename.split('.').pop();
+  formData.append('photo', {
+    uri: imageUri,
+    name: filename,
+    type: `image/${ext === 'jpg' ? 'jpeg' : ext}`,
+  });
+
+  const headers = {};
+  if (authToken) {
+    headers.Authorization = `Bearer ${authToken}`;
+  }
+
+  const response = await fetch(`${API_URL}/upload/proof-photo`, {
+    method: 'POST',
+    headers,
+    body: formData,
+  });
+
+  const data = await response.json();
+  if (!response.ok) {
+    throw new Error(data.error || 'Upload failed');
+  }
+  return data;
+};

@@ -8,6 +8,7 @@ const riderOrderRoutes = require('./routes/riderOrders');
 const riderStatusRoutes = require('./routes/riderStatus');
 const ownerOrderRoutes = require('./routes/ownerOrders');
 const notificationRoutes = require('./routes/notifications');
+const uploadRoutes = require('./routes/upload');
 
 const { startScheduledJobs, checkAcceptTimeouts, checkStaleAccepted } = require('./services/scheduledJobs');
 
@@ -22,6 +23,7 @@ app.use('/api/v1/orders', riderOrderRoutes);
 app.use('/api/v1/riders', riderStatusRoutes);
 app.use('/api/v1/owner', ownerOrderRoutes);
 app.use('/api/v1/notifications', notificationRoutes);
+app.use('/api/v1/upload', uploadRoutes);
 
 // Health check
 app.get('/api/v1/health', (req, res) => {

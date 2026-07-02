@@ -1,6 +1,60 @@
+import { useEffect, useState, useCallback } from 'react';
+import { View, Text, StyleSheet } from 'react-native';
 import { Tabs } from 'expo-router';
-import { Home, ClipboardList, User } from 'lucide-react-native';
+import { Home, ClipboardList, Bell, User } from 'lucide-react-native';
 import { Colors } from '../../src/constants/colors';
+import { getNotifications } from '../../src/services/api';
+
+function AlertsBadge({ color, size }) {
+  const [unread, setUnread] = useState(0);
+
+  const fetchUnread = useCallback(async () => {
+    try {
+      const data = await getNotifications(1, 0);
+      setUnread(data.unreadCount || 0);
+    } catch (err) {
+      // silently fail
+    }
+  }, []);
+
+  useEffect(() => {
+    fetchUnread();
+    const interval = setInterval(fetchUnread, 30000);
+    return () => clearInterval(interval);
+  }, [fetchUnread]);
+
+  return (
+    <View>
+      <Bell size={size} color={color} />
+      {unread > 0 && (
+        <View style={badgeStyles.badge}>
+          <Text style={badgeStyles.badgeText}>
+            {unread > 9 ? '9+' : unread}
+          </Text>
+        </View>
+      )}
+    </View>
+  );
+}
+
+const badgeStyles = StyleSheet.create({
+  badge: {
+    position: 'absolute',
+    top: -4,
+    right: -8,
+    backgroundColor: '#EF4444',
+    width: 18,
+    height: 18,
+    borderRadius: 9,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  badgeText: {
+    color: Colors.white,
+    fontSize: 10,
+    fontWeight: '700',
+  },
+});
 
 export default function TabsLayout() {
   return (
@@ -33,7 +87,18 @@ export default function TabsLayout() {
         name="orders"
         options={{
           title: 'Orders',
-          tabBarIcon: ({ color, size }) => <ClipboardList size={size} color={color} />,
+          tabBarIcon: ({ color, size }) => (
+            <ClipboardList size={size} color={color} />
+          ),
+        }}
+      />
+      <Tabs.Screen
+        name="notifications"
+        options={{
+          title: 'Alerts',
+          tabBarIcon: ({ color, size }) => (
+            <AlertsBadge color={color} size={size} />
+          ),
         }}
       />
       <Tabs.Screen

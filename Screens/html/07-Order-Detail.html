@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=393, initial-scale=1" />
+  <title>Zelvop — Order Detail</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { width: 393px; height: 852px; overflow: hidden; background: #fff; font-family: 'Inter', -apple-system, system-ui, sans-serif; }
+  </style>
+</head>
+<body>
+<div style="width:393px; height:852px; background:#F9FAFB; border-radius:2px; box-shadow:0 1px 3px rgba(0,0,0,.08); overflow:hidden; position:relative">
+    <div style="background:#fff; padding:14px 24px 0; display:flex; justify-content:space-between; align-items:center; position:absolute; top:0; left:0; right:0; z-index:10">
+      <span style="font-family:'Inter',sans-serif; font-size:15px; font-weight:600; color:#1F2937">9:41</span>
+      <div style="display:flex; gap:6px; align-items:center">
+        <svg width="18" height="12" viewBox="0 0 18 12"><rect x="0" y="3" width="3" height="9" rx="1" fill="#1F2937"/><rect x="5" y="2" width="3" height="10" rx="1" fill="#1F2937"/><rect x="10" y="0" width="3" height="12" rx="1" fill="#1F2937"/><rect x="15" y="1" width="3" height="11" rx="1" fill="#D1D5DB"/></svg>
+        <svg width="16" height="12" viewBox="0 0 16 12"><path d="M1 8.5C3.7 4.8 7.5 3 11.5 3s5.5 1.5 7.5 4" stroke="#1F2937" stroke-width="1.5" fill="none"/></svg>
+        <svg width="27" height="13" viewBox="0 0 27 13"><rect x="0" y="0" width="24" height="12" rx="3.5" stroke="#1F2937" stroke-width="1" fill="none"/><rect x="1.5" y="1.5" width="18" height="9" rx="2" fill="#1F2937"/><rect x="25" y="3.5" width="2" height="5" rx="1" fill="#1F2937"/></svg>
+      </div>
+    </div>
+    <div style="width:100%; height:100%; display:flex; flex-direction:column; font-family:'Inter',sans-serif">
+      <!-- Header -->
+      <div style="background:#fff; display:flex; align-items:center; justify-content:space-between; padding:58px 20px 16px">
+        <div style="display:flex; align-items:center; gap:12px">
+          <div style="width:40px; height:40px; border-radius:20px; background:#F3F4F6; display:flex; align-items:center; justify-content:center">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#1F2937" stroke-width="2.5" stroke-linecap="round"><polyline points="15 18 9 12 15 6"/></svg>
+          </div>
+          <span style="font-size:18px; font-weight:700; color:#1F2937">#ORD-0042</span>
+        </div>
+        <span style="background:#DBEAFE; color:#1E40AF; font-size:13px; font-weight:600; padding:5px 14px; border-radius:20px">On the Way</span>
+      </div>
+      <div style="flex:1; overflow-y:auto; padding:16px 20px">
+        <!-- Timeline -->
+        <div style="background:#fff; border-radius:14px; padding:20px; margin-bottom:14px; border:1px solid #F3F4F6">
+          <div style="font-size:14px; font-weight:700; color:#1F2937; margin-bottom:16px">Status Timeline</div>
+          <div style="display:flex; gap:14px">
+            <div style="display:flex; flex-direction:column; align-items:center">
+              <div style="width:28px; height:28px; border-radius:14px; background:#10B981; display:flex; align-items:center; justify-content:center">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3" stroke-linecap="round"><polyline points="20 6 9 17 4 12"/></svg>
+              </div>
+              <div style="width:2px; height:28px; background:#10B981; margin:2px 0"></div>
+            </div>
+            <div style="padding-bottom:12px">
+              <div style="font-size:14px; font-weight:600; color:#1F2937">Order Received</div>
+              <div style="font-size:12px; color:#9CA3AF">✓ Completed</div>
+            </div>
+          </div>
+          <div style="display:flex; gap:14px">
+            <div style="display:flex; flex-direction:column; align-items:center">
+              <div style="width:28px; height:28px; border-radius:14px; background:#10B981; display:flex; align-items:center; justify-content:center">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3" stroke-linecap="round"><polyline points="20 6 9 17 4 12"/></svg>
+              </div>
+              <div style="width:2px; height:28px; background:#10B981; margin:2px 0"></div>
+            </div>
+            <div style="padding-bottom:12px">
+              <div style="font-size:14px; font-weight:600; color:#1F2937">Preparing</div>
+              <div style="font-size:12px; color:#9CA3AF">✓ Completed</div>
+            </div>
+          </div>
+          <div style="display:flex; gap:14px">
+            <div style="display:flex; flex-direction:column; align-items:center">
+              <div style="width:28px; height:28px; border-radius:14px; background:#3B82F6; display:flex; align-items:center; justify-content:center; border:3px solid #BFDBFE">
+                <div style="width:8px; height:8px; border-radius:4px; background:#fff"></div>
+              </div>
+              <div style="width:2px; height:28px; background:#E5E7EB; margin:2px 0"></div>
+            </div>
+            <div style="padding-bottom:12px">
+              <div style="font-size:14px; font-weight:600; color:#1F2937">Picked Up</div>
+              <div style="font-size:12px; color:#3B82F6; font-weight:500">In progress...</div>
+            </div>
+          </div>
+          <div style="display:flex; gap:14px">
+            <div style="display:flex; flex-direction:column; align-items:center">
+              <div style="width:28px; height:28px; border-radius:14px; background:#E5E7EB; display:flex; align-items:center; justify-content:center"></div>
+            </div>
+            <div>
+              <div style="font-size:14px; font-weight:600; color:#9CA3AF">Delivered</div>
+              <div style="font-size:12px; color:#9CA3AF">Pending</div>
+            </div>
+          </div>
+        </div>
+        <!-- Customer -->
+        <div style="background:#fff; border-radius:14px; padding:20px; margin-bottom:14px; border:1px solid #F3F4F6">
+          <div style="font-size:14px; font-weight:700; color:#1F2937; margin-bottom:14px">Customer</div>
+          <div style="font-size:16px; font-weight:700; color:#1F2937; margin-bottom:4px">Usman Ali</div>
+          <div style="font-size:13px; color:#6B7280; margin-bottom:12px">+92 300 1234567</div>
+          <div style="display:flex; gap:10px; margin-bottom:14px">
+            <div style="flex:1; height:42px; border-radius:10px; border:1.5px solid #3B82F6; display:flex; align-items:center; justify-content:center; gap:8px">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#3B82F6" stroke-width="2"><path d="M22 16.92v3a2 2 0 01-2.18 2"/></svg>
+              <span style="font-size:13px; font-weight:600; color:#3B82F6">Call</span>
+            </div>
+            <div style="flex:1; height:42px; border-radius:10px; border:1.5px solid #25D366; display:flex; align-items:center; justify-content:center; gap:8px">
+              <span style="font-size:13px; font-weight:600; color:#25D366">WhatsApp</span>
+            </div>
+          </div>
+          <div style="display:flex; align-items:flex-start; gap:8px; margin-bottom:12px">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#6B7280" stroke-width="2" style="flex-shrink:0; margin-top:2px"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z"/><circle cx="12" cy="10" r="3"/></svg>
+            <span style="font-size:13px; color:#1F2937; line-height:1.5">House 12, Street 5, DHA Phase 6, Lahore</span>
+          </div>
+          <div style="height:40px; border-radius:10px; border:1.5px solid #3B82F6; display:flex; align-items:center; justify-content:center; gap:8px">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#3B82F6" stroke-width="2"><polygon points="3 11 22 2 13 21 11 13 3 11"/></svg>
+            <span style="font-size:13px; font-weight:600; color:#3B82F6">Open in Maps</span>
+          </div>
+          <div style="margin-top:12px; font-size:13px; color:#6B7280; font-style:italic; background:#F9FAFB; padding:10px 14px; border-radius:8px">📝 Ring the doorbell twice. Gate code: 4521</div>
+        </div>
+        <!-- Items -->
+        <div style="background:#fff; border-radius:14px; padding:20px; margin-bottom:14px; border:1px solid #F3F4F6">
+          <div style="font-size:14px; font-weight:700; color:#1F2937; margin-bottom:14px">Order Items</div>
+          <div style="display:flex; justify-content:space-between; padding:8px 0; border-bottom:1px solid #F3F4F6">
+            <span style="font-size:14px; color:#1F2937">2x Zinger Burger</span>
+            <span style="font-size:14px; color:#1F2937; font-weight:600">Rs. 1,000</span>
+          </div>
+          <div style="display:flex; justify-content:space-between; padding:8px 0; border-bottom:1px solid #F3F4F6">
+            <span style="font-size:14px; color:#1F2937">1x Loaded Fries</span>
+            <span style="font-size:14px; color:#1F2937; font-weight:600">Rs. 350</span>
+          </div>
+          <div style="display:flex; justify-content:space-between; padding:8px 0">
+            <span style="font-size:14px; color:#1F2937">1x Pepsi 500ml</span>
+            <span style="font-size:14px; color:#1F2937; font-weight:600">Rs. 100</span>
+          </div>
+          <div style="display:flex; justify-content:space-between; padding:14px 0 4px; border-top:2px solid #F3F4F6; margin-top:8px">
+            <span style="font-size:15px; font-weight:700; color:#1F2937">Total</span>
+            <span style="font-size:15px; font-weight:700; color:#1F2937">Rs. 1,450</span>
+          </div>
+          <div style="margin-top:8px">
+            <span style="font-size:12px; font-weight:600; padding:4px 12px; border-radius:8px; background:#FEF3C7; color:#92400E">Cash on Delivery</span>
+          </div>
+        </div>
+      </div>
+      <!-- Action button -->
+      <div style="position:absolute; bottom:0; left:0; right:0; padding:16px 20px 36px; background:#fff; border-top:1px solid #E5E7EB">
+        <div style="height:52px; background:#10B981; border-radius:12px; display:flex; align-items:center; justify-content:center">
+          <span style="color:#fff; font-size:16px; font-weight:700">Mark Delivered</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</body>
+</html>
