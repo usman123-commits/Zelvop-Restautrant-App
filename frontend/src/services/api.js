@@ -51,6 +51,12 @@ export const signup = (data) =>
 
 export const getMe = () => request('/auth/me');
 
+export const updateProfile = (data) =>
+  request('/auth/profile', {
+    method: 'PATCH',
+    body: JSON.stringify(data),
+  });
+
 export const forgotPassword = (email) =>
   request('/auth/forgot-password', {
     method: 'POST',

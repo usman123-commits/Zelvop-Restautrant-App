@@ -5,6 +5,19 @@ const { protect } = require('../middleware/auth');
 
 const router = express.Router();
 
+function userResponse(user) {
+  return {
+    _id: user._id,
+    name: user.name,
+    email: user.email,
+    role: user.role,
+    contactNumber: user.contactNumber,
+    profilePhoto: user.profilePhoto,
+    isOnline: user.isOnline,
+    createdAt: user.createdAt,
+  };
+}
+
 // POST /api/v1/auth/signup
 router.post('/signup', async (req, res) => {
   try {
@@ -41,18 +54,7 @@ router.post('/signup', async (req, res) => {
 
     const token = user.generateAuthToken();
 
-    res.status(201).json({
-      token,
-      user: {
-        _id: user._id,
-        name: user.name,
-        email: user.email,
-        role: user.role,
-        contactNumber: user.contactNumber,
-        profilePhoto: user.profilePhoto,
-        isOnline: user.isOnline,
-      },
-    });
+    res.status(201).json({ token, user: userResponse(user) });
   } catch (err) {
     if (err.code === 11000) {
       return res.status(400).json({ error: 'Email already registered' });
@@ -84,18 +86,7 @@ router.post('/login', async (req, res) => {
 
     const token = user.generateAuthToken();
 
-    res.json({
-      token,
-      user: {
-        _id: user._id,
-        name: user.name,
-        email: user.email,
-        role: user.role,
-        contactNumber: user.contactNumber,
-        profilePhoto: user.profilePhoto,
-        isOnline: user.isOnline,
-      },
-    });
+    res.json({ token, user: userResponse(user) });
   } catch (err) {
     res.status(500).json({ error: 'Server error' });
   }
@@ -103,17 +94,47 @@ router.post('/login', async (req, res) => {
 
 // GET /api/v1/auth/me
 router.get('/me', protect, async (req, res) => {
-  res.json({
-    user: {
-      _id: req.user._id,
-      name: req.user.name,
-      email: req.user.email,
-      role: req.user.role,
-      contactNumber: req.user.contactNumber,
-      profilePhoto: req.user.profilePhoto,
-      isOnline: req.user.isOnline,
-    },
-  });
+  res.json({ user: userResponse(req.user) });
+});
+
+// PATCH /api/v1/auth/profile -- update name, email, phone
+router.patch('/profile', protect, async (req, res) => {
+  try {
+    const { name, email, contactNumber } = req.body;
+    const updates = {};
+
+    if (name && name.trim()) updates.name = name.trim();
+    if (email && email.trim()) {
+      const lower = email.trim().toLowerCase();
+      if (lower !== req.user.email) {
+        const existing = await User.findOne({ email: lower });
+        if (existing) {
+          return res.status(400).json({ error: 'Email already in use' });
+        }
+      }
+      updates.email = lower;
+    }
+    if (contactNumber !== undefined) {
+      updates.contactNumber = contactNumber.trim() || undefined;
+    }
+
+    if (Object.keys(updates).length === 0) {
+      return res.status(400).json({ error: 'No fields to update' });
+    }
+
+    const user = await User.findByIdAndUpdate(req.user._id, updates, {
+      new: true,
+      runValidators: true,
+    });
+
+    res.json({ user: userResponse(user) });
+  } catch (err) {
+    if (err.name === 'ValidationError') {
+      const msg = Object.values(err.errors).map((e) => e.message).join(', ');
+      return res.status(400).json({ error: msg });
+    }
+    res.status(500).json({ error: 'Server error' });
+  }
 });
 
 // POST /api/v1/auth/forgot-password
