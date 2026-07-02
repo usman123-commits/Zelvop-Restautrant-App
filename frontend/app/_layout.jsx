@@ -3,10 +3,9 @@ import { Stack, useRouter, useSegments } from 'expo-router';
 import { Provider, useSelector, useDispatch } from 'react-redux';
 import { PersistGate } from 'redux-persist/integration/react';
 import { StatusBar } from 'expo-status-bar';
-import { ActivityIndicator, View } from 'react-native';
 import { store, persistor } from '../src/store';
 import { loadUser } from '../src/store/authSlice';
-import { Colors } from '../src/constants/colors';
+import SplashScreen from '../src/components/SplashScreen';
 
 function AuthGate() {
   const { user, token, initialized } = useSelector((state) => state.auth);
@@ -33,11 +32,7 @@ function AuthGate() {
   }, [token, user, initialized, segments]);
 
   if (!initialized) {
-    return (
-      <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: Colors.white }}>
-        <ActivityIndicator size="large" color={Colors.primary} />
-      </View>
-    );
+    return <SplashScreen />;
   }
 
   return (
@@ -51,14 +46,7 @@ function AuthGate() {
 export default function RootLayout() {
   return (
     <Provider store={store}>
-      <PersistGate
-        loading={
-          <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: Colors.white }}>
-            <ActivityIndicator size="large" color={Colors.primary} />
-          </View>
-        }
-        persistor={persistor}
-      >
+      <PersistGate loading={<SplashScreen />} persistor={persistor}>
         <AuthGate />
       </PersistGate>
     </Provider>
