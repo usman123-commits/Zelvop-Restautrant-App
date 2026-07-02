@@ -21,17 +21,18 @@ function userResponse(user) {
 // POST /api/v1/auth/signup
 router.post('/signup', async (req, res) => {
   try {
-    const { name, email, password, role, contactNumber } = req.body;
+    const { name, email, password, contactNumber } = req.body;
 
-    if (!name || !email || !password || !role) {
+    if (!name || !email || !password) {
       return res
         .status(400)
-        .json({ error: 'Name, email, password, and role are required' });
+        .json({ error: 'Name, email, and password are required' });
     }
 
-    if (!['owner', 'rider'].includes(role)) {
-      return res.status(400).json({ error: 'Role must be owner or rider' });
-    }
+    // SECURITY: role is never taken from the request body. Public signup always
+    // creates a rider. Owner accounts are provisioned out-of-band via
+    // scripts/seedOwner.js -- this prevents privilege escalation to owner.
+    const role = 'rider';
 
     if (password.length < 6) {
       return res

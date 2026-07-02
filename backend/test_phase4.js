@@ -49,18 +49,24 @@ function section(name) {
 
 async function run() {
   section('Setup');
+  const User = require('./src/models/User');
   await mongoose.connect(process.env.MONGODB_URI);
   await mongoose.connection.db.dropDatabase();
-  console.log('  DB dropped');
+  // Owner accounts cannot be created via public signup (rider-only) --
+  // seed the owner directly, mirroring scripts/seedOwner.js.
+  await User.create({
+    name: 'Otto', email: 'otto@test.com', password: 'test123', role: 'owner',
+  });
+  console.log('  DB dropped + owner seeded');
   await mongoose.disconnect();
   await new Promise((r) => setTimeout(r, 2000));
 
-  // Create owner
-  let r = await request('POST', '/auth/signup', {
-    name: 'Otto', email: 'otto@test.com', password: 'test123', role: 'owner',
+  // Log in as the seeded owner
+  let r = await request('POST', '/auth/login', {
+    email: 'otto@test.com', password: 'test123',
   });
   const OWNER_TOKEN = r.data.token;
-  console.log('  Owner created: Otto');
+  console.log('  Owner logged in: Otto');
 
   // Create rider
   r = await request('POST', '/auth/signup', {
